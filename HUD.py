@@ -19,38 +19,21 @@ from const import *
 
 import random
 				
-class Background( Layer ):
-    def __init__(self):
-        super( Background, self ).__init__()
-        self.img = pyglet.resource.image('Background.png')
+class Background( Sprite ):
+	def __init__(self):
+		w, h = director.get_window_size()
+		sc = 1920/w
+		super( Background, self ).__init__(pyglet.resource.image('Background.png'), (w/2, h/2), scale = 1/sc)
 
-    def draw( self ):
-        glPushMatrix()
-        self.transform()
-        self.img.blit(0,0)
-        glPopMatrix()
 
 class Coin (Layer):
 	def __init__(self):
 		super(Coin, self).__init__()
-<<<<<<< HEAD
-		self.coins = [pyglet.resource.image('coins/coin%s.png' %  coin_image) for coin_image in range(Coin_image_number)]
-		self.coin_anim  = pyglet.image.Animation.from_image_sequence(self.coins, 0.1, True)
-		self.coin = Sprite(self.coin_anim, (1400, 900))
-	def draw(self):
-		self.coin.draw()
-	
-class HUD(Layer):
-	def __init__(self):
-		
-		super( HUD, self).__init__()
-		self.add( Background(), z = 0 )
-		self.add( Coin(), z = 2 )
-=======
 		w, h = director.get_window_size()
+		sc = 1920/w
 		self.coins = [pyglet.resource.image('coins/coin%s.png' %  coin_image) for coin_image in range(Coin_image_number)]
 		self.coin_anim  = pyglet.image.Animation.from_image_sequence(self.coins, 0.1, True)
-		self.coin = Sprite(self.coin_anim, (w - 300, h - 50))
+		self.coin = Sprite(self.coin_anim, (w - 300//sc, h - 50//sc), scale = 1/sc)
 	def draw(self):
 		self.coin.draw()		
 	
@@ -66,4 +49,3 @@ class HUD_P(Layer):
 		
 		super( HUD_P, self).__init__()
 		#self.add( Background(), z = 0 )
->>>>>>> origin/master

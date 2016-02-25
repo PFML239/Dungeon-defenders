@@ -20,6 +20,7 @@ from cocos.text import Label
 from Images import *
 from const import *
 from HUD import *
+from magic import *
 
 import random
 
@@ -34,12 +35,13 @@ class GameModel( pyglet.event.EventDispatcher):
 		self.init_map()
 		w, h = director.get_window_size()
 		
-		
+		sc = 1920//w
 		self.heroes = {}
-		self.heroes['wizard'] = Hero('wizard', self, 0, (Quad_side - 1)/2)
-		self.heroes['rogue'] = Hero('rogue', self, (Quad_side - 1)/2, 0)
-		self.heroes['priest'] = Hero('priest', self, (Quad_side - 1)/2, Quad_side - 1)
-		self.heroes['warrior'] = Hero('warrior', self, Quad_side - 1, (Quad_side - 1)/2)
+		self.heroes['wizard'] = Hero('wizard', 0, self, 0, (Quad_side - 1)/2)
+		self.heroes['rogue'] = Hero('rogue', 3, self, (Quad_side - 1)/2, 0)
+		self.heroes['priest'] = Hero('priest', 1, self, (Quad_side - 1)/2, Quad_side - 1)
+		self.heroes['warrior'] = Hero('warrior', 2, self, Quad_side - 1, (Quad_side - 1)/2)
+		
 		self.alive_heroes = ['wizard', 'priest', 'warrior', 'rogue']
 		self.actual_hero = ['wizard']
 		c = self.map.get((0, (Quad_side - 1)/2))
@@ -55,51 +57,142 @@ class GameModel( pyglet.event.EventDispatcher):
 		self.map = {}
 		self.map['actual_tile'] = (-1, -1)
 		w, h = director.get_window_size()
+		sc = 1920/w
 		for i in range (self.mapx):
 			for j in range (self.mapy):
-				self.map[(i, j)] = Tile(Images.floortile, (2*i + 1)*Tile_size/2 + left_space, (2*j + 1)*Tile_size/2 + (h - Quad_side*Tile_size)/2, i, j)
+				self.map[(i, j)] = Tile(Images.floortile, ((2*i + 1)*Tile_size/2 + left_space)//sc, 
+										((2*j + 1)*Tile_size/2 + (h*sc - (Quad_side*Tile_size))/2)//sc, i, j)
 	
 	
 	def on_gameover(self):
 		
-		for hero_name in self.heroes:
-			if (self.heroes[hero_name].stats.health <= 0):
-				self.dispatch_event("on_game_over")
+		if (len(self.alive_heroes) == 0):
+			self.dispatch_event("on_game_over")
 				
+class BuildingMenu(Layer):
 
-class Hero(Sprite):
+	def __init__(self): 
+		super(BuildingMenu, self).__init__()
+		self.end_of_init()
+		
+	def end_of_init(self):
+		w, h = director.get_window_size()		
+		sc = 1920//w
+		self.visible = 0
+		self.b_types = {}
+		self.b_types[0] = SecondB_menu('trap', 0)
+		self.b_types[1] = SecondB_menu('monster', 1)
+		self.b_types[2] = SecondB_menu('magic', 2)
+		self.b_types[3] = SecondB_menu('wall', 3)
+		self.scroll = Sprite(Images.menu_scroll, (1500//sc, 380//sc), scale = 1/sc)
+		self.active = -1
+	
+	def draw(self):
+		if self.visible:
+			w, h = director.get_window_size()		
+			sc = 1920//w
+			self.scroll.draw()
+			for b_type in self.b_types:
+				self.b_types[b_type].sprite.draw()
+				if self.active == b_type:
+					self.b_types[b_type].draw()
+			
 
-	def __init__(self, name, model, map_posx, map_posy):
-		super(Hero, self).__init__(Images.heroes[name])
+class SecondB_menu(Layer):
+	
+	def __init__(self, name, number):
+		super(SecondB_menu, self).__init__()
+		w, h = director.get_window_size()		
+		sc = 1920//w
+		self.name = name
+		self.number = number
+		self.sprite = Sprite(Images.building_menu[self.name], (1100//sc, (580 - self.number*B_Menu_size*1.1)//sc), scale = 1/sc)
+		self.objects = Object_list[self.name]
+	
+	def draw(self):
+		w, h = director.get_window_size()
+		sc = 1920//w
+		c = Sprite(Images.frame_red, (1100//sc, (580 - self.number*B_Menu_size*1.1)//sc), scale = 1/sc)
+		c.draw()
+		for object in self.objects:
+			dx, dy = self.get_coordinates(object)
+			c = Sprite(Images.B_images[self.name][object],
+						((1315 + dx)//sc, (505 + dy)//sc), scale = 1/sc)
+			c.draw()
+	
+	def get_coordinates(self, number):
+		x = number%4
+		y = number//4
+		dx = x*(m_a+ m_b) 
+		dy = -y*(m_a+ m_b)
+		return(dx, dy)
+		
+class Magic():
+	def __init__(self, name, model):
+		self.name = name
+		self.model = model
+	def cast(self):
+		spell = DM_Magic[self.name]
+		spell.cast(self.model)
+		
+		
+class Hero():
+
+	def __init__(self, name, number ,model, map_posx, map_posy):
 		w, h = director.get_window_size()
 		self.name = name
+		self.number = number
+		sc = 1920/w
 		self.map_posx = map_posx
 		self.map_posy = map_posy
-		self.position = ((2*self.map_posx + 1)*Tile_size/2 + left_space, (2*self.map_posy + 1)*Tile_size/2 + (h - Quad_side*Tile_size)/2)
+		self.sprite = Sprite(Images.heroes[self.name], scale = 1/sc)
+		self.sprite.position = (((2*self.map_posx + 1)*Tile_size/2 + left_space)//sc, ((2*self.map_posy + 1)*Tile_size/2 + (h*sc - Quad_side*Tile_size)/2)//sc)
 		self.stats = Stats()
+		self.alive = 1
 		self.model = model
 		self.portrait = Portraits(self)
 		self.icon = Icons(self)
+		self.turnav = 1
 	
 	def replace_hero(self, map_posx, map_posy):
 		w, h = director.get_window_size()
+		sc = 1920/w
 		self.map_posx = map_posx
 		self.map_posy = map_posy
-		self.position = ((2*self.map_posx + 1)*Tile_size/2 + left_space, (2*self.map_posy + 1)*Tile_size/2 + (h - Quad_side*Tile_size)/2)
+		self.sprite.position = (((2*self.map_posx + 1)*Tile_size/2 + left_space)//sc, ((2*self.map_posy + 1)*Tile_size/2 + (h*sc - Quad_side*Tile_size)/2)//sc)
 	
-	def on_tile(self, tilename):
-		if (tilename == 'red'):
-			self.stats.health = self.stats.health - 20
+	def on_turn(self, tile):
+		self.turnav = self.turnav - 1
+		if (tile.name == 'lava'):
+			self.stats.health = self.stats.health - 50
 		if (self.stats.health <= 0):
-			self.model.on_gameover()
-
+			if (self.alive):
+				self.alive = 0
+				self.model.alive_heroes.remove(self.name)
+				self.model.on_gameover()
+		if (tile.open_P == 0):
+			self.stats.exp = self.stats.exp + 20
+			if self.stats.lvl < maxlvl:
+				if (self.stats.exp >= ExpNeed[self.stats.lvl]):
+					self.stats.lvl = self.stats.lvl + 1
+					self.stats.exp = 0
+		if (tile.name != 'wall'):
+			self.replace_hero(tile.map_pos_x, tile.map_pos_y)
+				
+	def draw(self):
+		self.sprite.draw()
+		self.icon.draw()
+		
+				
 class Portraits():
 
 	def __init__(self, hero):
 		self.hero = hero
 	
 	def draw(self):
-		c = Sprite(Images.portraits[self.hero.name], (1400, 480))
+		w, h = director.get_window_size()
+		sc = 1920/w
+		c = Sprite(Images.portraits[self.hero.name], (1400//sc, 480//sc), scale = 1/sc)
 		c.draw()
 		c = HeroStats(self.hero)
 		c.draw()
@@ -118,7 +211,12 @@ class Icons():
 			self.number = 3
 			
 	def draw(self):
-		c = Sprite(Images.hero_icons[self.hero.name], (1235 + Icon_size*self.number*1.1, 960))
+		w, h = director.get_window_size()
+		sc = 1920/w
+		if (self.hero.turnav > 0):
+			c = Sprite(Images.hero_icons[self.hero.name], ((1235 + Icon_size*self.number*1.1)//sc, 960//sc), scale = 1/sc)
+		else:
+			c = Sprite(Images.hero_icons_black[self.hero.name], ((1235 + Icon_size*self.number*1.1)//sc, 960//sc), scale = 1/sc)
 		c.draw()
 		
 			
@@ -127,32 +225,48 @@ class Stats():
 		self.exp = 0
 		self.int = 0
 		self.health = 100
+		self.lvl = 1
 
 class HeroStats(Label):
 	def __init__(self, hero):
+		w, h = director.get_window_size()
+		sc = 1920/w
 		self.hero = hero
 		self.health_label = Label('%d' %self.hero.stats.health, font_name='Times New Roman', font_size=28, anchor_x='center', anchor_y='center', color = (255, 0, 0, 255) )
-		self.health_label.position = 1300, 315
+		self.health_label.position = 1300//sc, 315//sc
+		self.exp_label = Label('%d' %self.hero.stats.exp, font_name='Times New Roman', font_size=28, anchor_x='center', anchor_y='center', color = (255, 0, 0, 255) )
+		self.exp_label.position = 1300//sc, 255//sc
+		self.lvl_label = Label('%d' %self.hero.stats.lvl, font_name='Times New Roman', font_size=28, anchor_x='center', anchor_y='center', color = (255, 0, 0, 255) )
+		self.lvl_label.position = 1300//sc, 195//sc
 
 	def draw(self):
-		self.health_label.draw()		
+		self.health_label.draw()
+		self.lvl_label.draw()
+		self.exp_label.draw()
 		
-class Tile(Sprite):
+class Tile():
 
 	def __init__(self, image, posx, posy ,map_posx, map_posy):
-		super(Tile, self).__init__(image, (posx, posy))
+		w, h = director.get_window_size()
+		sc = 1920/w
 		self.namenumber = 0
 		self.name = 'floor'
 		self.map_pos_x = map_posx
 		self.map_pos_y = map_posy
 		self.open_P = 0
+		self.sprite = Sprite(Images.tile_image[self.name], (posx, posy), scale = 1/sc)
 	
 	def on_click_DM(self):
-		self.namenumber = (self.namenumber + 1) % len(names)
-		self.name = names[self.namenumber]
-		self.image = Images.image[self.name] 
+		self.name = self.name
+		#self.namenumber = (self.namenumber + 1) % len(tile_names)
+		#self.name = tile_names[self.namenumber]
+		#self.image = Images.image[self.name] 
 	
 	def on_click_P(self):
 		self.open_P = 1
+	
+	def draw(self):
+		self.sprite.image = Images.tile_image[self.name]
+		self.sprite.draw()
 		
 GameModel.register_event_type('on_game_over')
