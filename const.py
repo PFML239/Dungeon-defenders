@@ -14,14 +14,30 @@ adject_tiles = [(1, 0), (-1, 0), (0, 1), (0, -1)]
 tile_names = ['floor', 'lava', 'wall']
 hero_stat = ['health', 'int', 'exp']
 heroes = ['wizard', 'priest', 'warrior', 'rogue']
-ExpNeed = {1: 10, 2: 30, 3: 60}
+ExpNeed = [0, 30, 80, 180]
 maxlvl = 3
 
-Traps = {0: 'lava'}
-#Traps = {0: 'lava'}
-Monsters = {}
-Magic = {0: 'curse'}
-Walls = {0: 'wall', 1: 'floor'}
+Tech_stat = {
+			'wizard': {'speed': 1, 'maxhp': 100},
+			'priest': {'speed': 1, 'maxhp': 100},
+			'warrior': {'speed': 1, 'maxhp': 140},
+			'rogue': {'speed': 2, 'maxhp': 80}
+			}
+
+Artefacts = ['mage_wand', 'aqua_shield', 'bandit_sword',
+			'black_mask', 'crystal_dagger', 'frost_staff', 
+			'glory_cloak', 'katana_sword', 'mage_hat',
+			'priest_robe', 'redking_amulet', 'redking_belt',
+			'redking_hat', 'rogue_knife', 'royal_ring',
+			'sharp_ring', 'speed_boots', 'holy_wand',
+			'redking_boots', 'flame_sword']
+art_pos = [94 + 75/2, 174 + 75/2, 253 + 75/2, 331 + 75/2, 410 + 75/2]
+
+
+Traps = ['lava']
+Monsters = []
+Magic = ['curse']
+Walls = ['wall', 'floor']
 
 Object_list = {'trap': Traps, 'monster': Monsters, 'magic': Magic, 'wall': Walls}
 

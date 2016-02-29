@@ -83,7 +83,7 @@ class GameView_DM(GameView):
 		
 		#Actual square drawing
 		if (self.act_tile):
-			c = Sprite(self.act_tile.sprite.image, (1420//sc, 830//sc), scale = 3.5/sc)
+			c = Sprite(self.act_tile.sprite.image, (1320//sc, 830//sc), scale = 3.5/sc)
 			c.draw()
 			
 		#map drawing
@@ -107,6 +107,8 @@ class GameView_DM(GameView):
 			i, j = self.act_tile.map_pos_x, self.act_tile.map_pos_y
 			Sprite(Images.frame_yellow, (((2*i + 1)*Tile_size/2 + left_space)//sc,
 										(2*j + 1)*Tile_size/2//sc + (h - Quad_side*Tile_size//sc)/2), scale = 1/sc).draw()
+		
+		self.model.interface_DM.draw()
 		
 		if (self.act_tile):
 			if (self.act_tile.open_P == 0):
@@ -153,8 +155,7 @@ class GameView_DM(GameView):
 			#Checking that tile is on the map
 			if (i >= 0) and (j >= 0) and (i < self.mapx) and (j < self.mapy):
 				c = self.parent.model.map.get((i, j))
-				if (c.open_P == 0):
-					c.on_click_DM()	
+				if (c.open_P == 0):	
 					self.building_menu.visible = 1
 				else:
 					self.building_menu.visible = 0
@@ -185,7 +186,7 @@ class GameView_DM(GameView):
 					i = (mouse_scroll_x*sc - m_c)//(m_a + m_b)
 					j = (mouse_scroll_y*sc - m_c)//(m_a + m_b)
 					if(mouse_scroll_x*sc <= m_c + i*(m_a + m_b) + m_a) and (mouse_scroll_y*sc <= m_c + j*(m_a + m_b) + m_a):
-						number = i + (2 - j)*4
+						number = int(i + (2 - j)*4)
 						if (self.building_menu.active != -1) and (self.act_tile.open_P == 0) and (self.building_menu.active != 2):
 							name = self.building_menu.b_types[self.building_menu.active].objects[number]
 							self.model.map[(self.act_tile.map_pos_x, self.act_tile.map_pos_y)].name = name
@@ -216,13 +217,16 @@ class GameView_P(GameView):
 		self.actual_hero = self.model.heroes[self.alive_heroes[self.hero_number]]
 		
 	def reload(self):
+		check = 0
 		for hero_name in self.parent.model.heroes:
 			hero = self.parent.model.heroes[hero_name]
 			if (hero.alive):
-				hero.turnav = 1
+				hero.turnav = hero.techstats.speed
+				check = 1
 		self.hero_number = 0
 		self.actual_hero = self.model.heroes['wizard']
-		self.next_hero(1)
+		if check:
+			self.next_hero(1)
 	
 	def draw(self):
 		w, h = director.get_window_size()
@@ -286,7 +290,6 @@ class GameView_P(GameView):
 					if (hero.alive == 0):
 						self.hero_number = (self.hero_number - 1) %len(self.model.alive_heroes)
 					self.actual_hero = self.model.heroes[self.model.alive_heroes[self.hero_number]]
-					#print(self.actual_hero.name)
 					self.next_hero(1)
 			else:
 				self.label = Message('You have made a turn with this hero already')
@@ -327,7 +330,6 @@ class GameView_P(GameView):
 						c = self.parent.model.map.get((i, j))
 						c.on_click_P()
 						hero.on_turn(c)
-						hero.replace_hero(i, j)
 						if len(self.model.alive_heroes) and (hero.turnav <= 0 or hero.alive == 0):
 							self.hero_number = (self.hero_number + 1) %len(self.model.alive_heroes)
 							if (hero.alive == 0):
