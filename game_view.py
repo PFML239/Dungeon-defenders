@@ -27,26 +27,50 @@ from HUD import *
 from gamemodel import *
 
 import random
+'''GameView is the main class of our game screen (we return this layer if get_new_game is called)
+This class is a parent class for two classes: GameView_DM (what dungeon master can see)
+and GameView_P (what player can see). Thus GameView is something like 'connector'
+between player's and master's screens. It's __init__ contains one parametor 
+'model' -- it is our gamemodel (you can find more information about gamemodel in gamemodel.py
+documentation).
 
+Now some information about GameView's methods and atributes:
+mapx and mapy are width and hidth of the map(now it is a 11X11 table);
+model atribute contains our gamemodel obviosly(map, heroes and others);
+cheat atribute was added for easier testing (you have unlimited turns for each hero,
+if you press 'c' in players turn), cheat = 0 if it is unenabled, and 1if enabled;
+PView and DMView contains GameView_DM and GameView_P objects, that are actual for the game;
+curr_players = DMView, if now is DM turn, and PView if player's;
+
+Now about methods:
+on_game_over method was added to control end of the game(we are using Event_listener for this),
+if game is over we show new layer called GameOver. 
+next_turn is the main method of GameView. ON beeing called it changes actual player (DM and P),
+and pushes in new layer (PView or DMView, depends on the turn) 
+'''
 class GameView(Layer):
 	
 	def __init__(self, model):
 		super(GameView, self).__init__()
-		self.mapx = Quad_side
-		self.mapy = Quad_side
+		self.mapx = Quad_side #look in constants 
+		self.mapy = Quad_side #look in constants 
 		self.model = model
 		self.end_of_init(model)
 		self.cheat = 0
 		
 	def end_of_init(self, model):	
-		self.model.push_handlers(self.on_game_over)
+		self.model.push_handlers(self.on_game_over, self.on_you_win)
 		self.PView = GameView_P(model)
 		self.DMView = GameView_DM(model)
 		self.curr_player = self.DMView
 		self.add(self.curr_player)
 	
 	def on_game_over(self):
-		game_over = GameOver()
+		game_over = GameOver(False)
+		self.add(game_over)
+	
+	def on_you_win(self):
+		game_over = GameOver(True)
 		self.add(game_over)
 				
 	def next_turn(self):
@@ -58,7 +82,6 @@ class GameView(Layer):
 			self.remove(self.DMView)
 			self.add(self.PView)
 			self.curr_player = self.PView
-			
 			
 class GameView_DM(GameView):
 	
@@ -113,6 +136,15 @@ class GameView_DM(GameView):
 		if (self.act_tile):
 			if (self.act_tile.open_P == 0):
 				self.building_menu.draw()
+				
+		#mouse_x, mouse_y = win32gui.GetCursorPos(point)
+		'''if (mouse_x >= 1550) and (mouse_x <= 1650) and (mouse_y >= 850) and (mouse_y <= 950):
+			hero = self.model.heroes['wizard']
+			if hero.alive:
+				label = Label('%d' %hero.stats.health, font_name='Times New Roman', font_size=28//sc, anchor_x='center', anchor_y='center', color = (255, 0, 0, 255) )
+				label.position = 1300//sc, 315//sc
+				label.draw()'''
+			
 			
 	
 	def on_key_release(self, keys, modifiers):
@@ -401,14 +433,17 @@ class GameOver(ColorLayer):
 	
 	is_event_handler = True	
 	
-	def __init__( self, win = False):
+	def __init__( self, win):
 		super(GameOver,self).__init__( 32,32,32,64)
 
 		w,h = director.get_window_size()
-
-		label = Label('Game Over', font_name='Edit Undo Line BRK', font_size=54, anchor_y='center', anchor_x='center' )
+		if (win == False):
+			label = Label('Game Over', font_name='Edit Undo Line BRK', font_size=54, anchor_y='center', anchor_x='center' )
+		if (win == True):
+			label = Label('You Won', font_name='Edit Undo Line BRK', font_size=54, anchor_y='center', anchor_x='center' )
 		label.position =  ( w/2.0, h/2.0 )
 		self.add( label )
+		
 	
 	def on_mouse_release(self, x, y, buttons, modifiers):
 		director.pop()

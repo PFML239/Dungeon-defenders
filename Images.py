@@ -7,9 +7,9 @@ from const import *
 class Images(object):
 	
 	Tile_images = tile_names
-	greytile = pyglet.resource.image('tiles/block_black.png')
-	floortile = pyglet.resource.image('tiles/block_floor.png')
-	tile_image = {tile: pyglet.resource.image('tiles/block_%s.png' %tile) for tile in Tile_images}
+	greytile = pyglet.resource.image('tiles/black.png')
+	floortile = pyglet.resource.image('tiles/floor.png')
+	tile_image = {tile: pyglet.resource.image('tiles/%s.png' %tile) for tile in Tile_images}
 	frame_yellow = pyglet.resource.image('frame_yellow.png')
 	frame_blue = pyglet.resource.image('frame_blue.png')
 	frame_red = pyglet.resource.image('frame_red.png')

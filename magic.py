@@ -12,11 +12,7 @@ class Curse():
 		self.model = model
 		for hero in self.model.heroes:
 			if (self.model.heroes[hero].alive):
-				self.model.heroes[hero].stats.health = self.model.heroes[hero].stats.health - 20
-				if self.model.heroes[hero].stats.health <= 0:
-					self.model.heroes[hero].alive = 0
-					self.model.alive_heroes.remove(self.model.heroes[hero].name)
-					self.model.on_gameover()
+				self.model.controler.damage_hero(self.model.heroes[hero].name, 20)
 
 DM_spells = ['curse']
 DM_Magic = {'curse' : Curse()}

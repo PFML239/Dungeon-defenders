@@ -22,7 +22,15 @@ from pyglet import gl, font
 from pyglet.window import key
 
 from const import *
-				
+	
+'''
+	Our main part is main.py. It is the part witch startd if you press start.bat. 
+	Here you can find simple menu (new game and quit button). Now it is not important to understand
+	how enu works (I wont write abiut it here). New game button starts the new game and pushes in 
+	Scene() from game_view (get_newgame_DM function). This function returns us our main game layer
+	GameView(look ingame_view.py).
+	'''
+	
 class MainMenu( Menu ):
 
 	def __init__(self):

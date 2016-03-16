@@ -22,6 +22,7 @@ from const import *
 from HUD import *
 from magic import DM_Magic
 from artefacts import ArtEffects
+from controler import Controler
 
 import random
 
@@ -38,16 +39,17 @@ class GameModel( pyglet.event.EventDispatcher):
 		
 		sc = 1920//w
 		
-		self.interface_DM = Interface(self)
-		
 		self.heroes = {}
 		self.heroes['wizard'] = Hero('wizard', 0, self, 0, (Quad_side - 1)/2)
 		self.heroes['priest'] = Hero('priest', 1, self, (Quad_side - 1)/2, Quad_side - 1)
 		self.heroes['warrior'] = Hero('warrior', 2, self, Quad_side - 1, (Quad_side - 1)/2)
 		self.heroes['rogue'] = Hero('rogue', 3, self, (Quad_side - 1)/2, 0)
+		self.interface_DM = Interface(self)
 		
 		self.alive_heroes = ['wizard', 'priest', 'warrior', 'rogue']
 		self.actual_hero = ['wizard']
+		
+		self.controler = Controler(self)
 		c = self.map.get((0, (Quad_side - 1)/2))
 		c.open_P = 1
 		c = self.map.get(((Quad_side - 1)/2, 0))
@@ -55,6 +57,9 @@ class GameModel( pyglet.event.EventDispatcher):
 		c = self.map.get(((Quad_side - 1)/2, Quad_side - 1))
 		c.open_P = 1
 		c = self.map.get((Quad_side - 1, (Quad_side - 1)/2))
+		c.open_P = 1
+		c = self.map.get(((Quad_side - 1)/2, (Quad_side - 1)/2))
+		c.name = 'treasure'
 		c.open_P = 1
 		
 	def init_map(self):
@@ -72,6 +77,9 @@ class GameModel( pyglet.event.EventDispatcher):
 		
 		if (len(self.alive_heroes) == 0):
 			self.dispatch_event("on_game_over")
+	
+	def on_youwin(self):
+		self.dispatch_event("on_you_win")
 			
 
 		
@@ -97,10 +105,14 @@ class Tile():
 class Interface(Layer):
 	def __init__(self, model):
 		self.model = model
-		self.portrait = Hero_portriat_DM('wizard')
+		self.portraits = {'wizard': Hero_portriat_DM(), 'priest': Hero_portriat_DM(),
+						 'warrior': Hero_portriat_DM(),'rogue': Hero_portriat_DM()}
+		for c in self.portraits:
+			self.portraits[c].reload(model, c)
 		
 	def draw(self):
-		self.portrait.draw()
+		for c in self.portraits:
+			self.portraits[c].draw()
 		
 class BuildingMenu(Layer):
 
@@ -169,13 +181,42 @@ class Magic():
 		spell.cast(self.model)
 		
 class Hero_portriat_DM():
-	def __init__(self, hero_name):
+	def reload(self, model, hero_name):
 		w, h = director.get_window_size()
 		sc = 1920/w
+		self.model = model
 		self.name = hero_name
-		self.sprite = Sprite(Images.hero_icons[self.name], (1600//sc, 900//sc), scale = 1/sc)
+		if self.name == 'wizard':
+			self.hero = self.model.heroes[self.name]
+			self.sprite = Sprite(Images.hero_icons[self.name], (1600//sc, 900//sc), scale = 1/sc)
+			self.sprite_black = Sprite(Images.hero_icons_black[self.name], (1600//sc, 900//sc), scale = 1/sc)
+			self.label = Label('%d' %self.hero.stats.health, font_name='Times New Roman', font_size=20//sc, anchor_x='center', anchor_y='center', color = (255, 0, 0, 255) )
+			self.label.position = 1600//sc, 870//sc
+		if self.name == 'priest':
+			self.hero = self.model.heroes[self.name]
+			self.sprite = Sprite(Images.hero_icons[self.name], (1720//sc, 900//sc), scale = 1/sc)
+			self.sprite_black = Sprite(Images.hero_icons_black[self.name], (1720//sc, 900//sc), scale = 1/sc)
+			self.label = Label('%d' %self.hero.stats.health, font_name='Times New Roman', font_size=20//sc, anchor_x='center', anchor_y='center', color = (255, 0, 0, 255) )
+			self.label.position = 1720//sc, 870//sc
+		if self.name == 'warrior':
+			self.hero = self.model.heroes[self.name]
+			self.sprite = Sprite(Images.hero_icons[self.name], (1600//sc, 780//sc), scale = 1/sc)
+			self.sprite_black = Sprite(Images.hero_icons_black[self.name], (1600//sc, 780//sc), scale = 1/sc)
+			self.label = Label('%d' %self.hero.stats.health, font_name='Times New Roman', font_size=20//sc, anchor_x='center', anchor_y='center', color = (255, 0, 0, 255) )
+			self.label.position = 1600//sc, 750//sc
+		if self.name == 'rogue':
+			self.hero = self.model.heroes[self.name]
+			self.sprite = Sprite(Images.hero_icons[self.name], (1720//sc, 780//sc), scale = 1/sc)
+			self.sprite_black = Sprite(Images.hero_icons_black[self.name], (1720//sc, 780//sc), scale = 1/sc)
+			self.label = Label('%d' %self.hero.stats.health, font_name='Times New Roman', font_size=20//sc, anchor_x='center', anchor_y='center', color = (255, 0, 0, 255) )
+			self.label.position = 1720//sc, 750//sc
 	def draw(self):
-		self.sprite.draw()
+		if self.hero.alive:
+			self.sprite.draw()
+			self.label.font_name = '%d' %self.hero.stats.health
+			self.label.draw()
+		else:
+			self.sprite_black.draw()
 		
 		
 class Hero():
@@ -211,10 +252,9 @@ class Hero():
 	def on_turn(self, tile):
 		self.turnav = self.turnav - 1
 		if (tile.name == 'lava'):
-			self.stats.health = self.stats.health - 50
+			self.model.controler.damage_hero(self.name, lava_damage)
 		if (tile.name != 'wall'):
-			self.replace_hero(tile.map_pos_x, tile.map_pos_y)
-				
+			self.replace_hero(tile.map_pos_x, tile.map_pos_y)				
 		if (tile.open_P == 0):
 			self.stats.exp = self.stats.exp + self.techstats.exppertile
 			if self.stats.lvl < maxlvl:
@@ -222,7 +262,7 @@ class Hero():
 					self.stats.lvl = self.stats.lvl + 1
 					self.stats.exp = 0
 			if (tile.name == 'floor'):	
-				self.stats.luck = self.stats.luck + 120
+				self.stats.luck = self.stats.luck + luck_per_tile
 				if self.stats.luck >= 100:
 					self.stats.luck = 0
 					if (len(self.staff) < 5):
@@ -231,13 +271,9 @@ class Hero():
 						self.av_art.remove(art_name)
 						self.staff.append(art)
 						art.on_get(self)
-					
-		if (self.stats.health <= 0):
-			if (self.alive):
-				self.alive = 0
-				self.model.alive_heroes.remove(self.name)
-				self.model.on_gameover()
-				
+		if (tile.name == 'treasure'):
+			self.model.on_youwin()
+	
 	def draw(self):
 		self.sprite.draw()
 		self.icon.draw()
@@ -329,3 +365,4 @@ class Icons():
 		c.draw()
 		
 GameModel.register_event_type('on_game_over')
+GameModel.register_event_type('on_you_win')
