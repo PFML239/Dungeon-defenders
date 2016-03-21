@@ -41,7 +41,6 @@ class HUD_DM(Layer):
 	def __init__(self):
 		
 		super( HUD_DM, self).__init__()
-		#self.add( Background(), z = 0 )
 		self.add( Coin(), z = 2 )
 		
 class HUD_P(Layer):

@@ -20,9 +20,12 @@ from cocos.text import Label
 from Images import *
 from const import *
 from HUD import *
+from Skills import Skills
+from monsters import DM_Monsters
 from magic import DM_Magic
 from artefacts import ArtEffects
 from controler import Controler
+
 
 import random
 
@@ -40,23 +43,25 @@ class GameModel( pyglet.event.EventDispatcher):
 		sc = 1920//w
 		
 		self.heroes = {}
-		self.heroes['wizard'] = Hero('wizard', 0, self, 0, (Quad_side - 1)/2)
-		self.heroes['priest'] = Hero('priest', 1, self, (Quad_side - 1)/2, Quad_side - 1)
-		self.heroes['warrior'] = Hero('warrior', 2, self, Quad_side - 1, (Quad_side - 1)/2)
-		self.heroes['rogue'] = Hero('rogue', 3, self, (Quad_side - 1)/2, 0)
+		self.heroes['wizard'] = Hero('wizard', 0, self, 0, 0)
+		self.heroes['priest'] = Hero('priest', 1, self, 0, Quad_side - 1)
+		self.heroes['warrior'] = Hero('warrior', 2, self, Quad_side - 1, Quad_side - 1)
+		self.heroes['rogue'] = Hero('rogue', 3, self, Quad_side - 1, 0)
 		self.interface_DM = Interface(self)
 		
+		self.monsters = []
 		self.alive_heroes = ['wizard', 'priest', 'warrior', 'rogue']
 		self.actual_hero = ['wizard']
-		
 		self.controler = Controler(self)
-		c = self.map.get((0, (Quad_side - 1)/2))
+		self.skill_use = 0
+		
+		c = self.map.get((0, 0))
 		c.open_P = 1
-		c = self.map.get(((Quad_side - 1)/2, 0))
+		c = self.map.get((Quad_side - 1, 0))
 		c.open_P = 1
-		c = self.map.get(((Quad_side - 1)/2, Quad_side - 1))
+		c = self.map.get((Quad_side - 1, Quad_side - 1))
 		c.open_P = 1
-		c = self.map.get((Quad_side - 1, (Quad_side - 1)/2))
+		c = self.map.get((0, Quad_side - 1))
 		c.open_P = 1
 		c = self.map.get(((Quad_side - 1)/2, (Quad_side - 1)/2))
 		c.name = 'treasure'
@@ -94,6 +99,19 @@ class Tile():
 		self.map_pos_y = map_posy
 		self.open_P = 0
 		self.sprite = Sprite(Images.tile_image[self.name], (posx, posy), scale = 1/sc)
+		self.sprite_smoke = Sprite(Images.tile_image['smoke'], (posx, posy), scale = 1/sc)
+		self.monster = 0
+		self.smoke = 0
+		self.buildav = 1
+	
+	def next_turn(self):
+		if self.smoke:
+			self.smoke = self.smoke - 1
+	
+	def next_turn_DM(self):
+		self.buildav = 1
+		if (self.open_P) or (self.smoke):
+			self.buildav = 0
 	
 	def on_click_P(self):
 		self.open_P = 1
@@ -101,6 +119,9 @@ class Tile():
 	def draw(self):
 		self.sprite.image = Images.tile_image[self.name]
 		self.sprite.draw()
+		if self.smoke:
+			self.sprite_smoke.draw()
+			
 
 class Interface(Layer):
 	def __init__(self, model):
@@ -109,8 +130,14 @@ class Interface(Layer):
 						 'warrior': Hero_portriat_DM(),'rogue': Hero_portriat_DM()}
 		for c in self.portraits:
 			self.portraits[c].reload(model, c)
+		self.money = 10000
 		
 	def draw(self):
+		w, h = director.get_window_size()
+		sc = 1920/w
+		self.label = Label('%d' %self.money, font_name='Times New Roman', font_size=20//sc, anchor_x='center', anchor_y='center', color = (255, 0, 0, 255))
+		self.label.position = (1670//sc, 1030//sc)
+		self.label.draw()
 		for c in self.portraits:
 			self.portraits[c].draw()
 		
@@ -157,7 +184,7 @@ class SecondB_menu(Layer):
 	def draw(self):
 		w, h = director.get_window_size()
 		sc = 1920//w
-		c = Sprite(Images.frame_red, (1100//sc, (580 - self.number*B_Menu_size*1.1)//sc), scale = 1/sc)
+		c = Sprite(Images.frame_black, (1100//sc, (580 - self.number*B_Menu_size*1.1)//sc), scale = 1/sc)
 		c.draw()
 		for object in range(len(self.objects)):
 			dx, dy = self.get_coordinates(object)
@@ -235,12 +262,15 @@ class Hero():
 		
 		self.alive = 1
 		self.techstats = Tech_Stats(self.name)
-		self.stats = Stats()
+		self.stats = Stats(self.name)
 		self.staff = []
 		self.av_art = list(Artefacts)
 		self.model = model
 		self.turnav = self.techstats.speed
 		self.stats.health = self.techstats.max_health
+		self.skills = []
+		for s in Hero_skills[self.name]:
+			self.skills.append(Skill(s[0], s[1], self, self.model))
 	
 	def replace_hero(self, map_posx, map_posy):
 		w, h = director.get_window_size()
@@ -251,10 +281,15 @@ class Hero():
 	
 	def on_turn(self, tile):
 		self.turnav = self.turnav - 1
+		replace_hero = 1
 		if (tile.name == 'lava'):
 			self.model.controler.damage_hero(self.name, lava_damage)
-		if (tile.name != 'wall'):
-			self.replace_hero(tile.map_pos_x, tile.map_pos_y)				
+		if (tile.name == 'wall'):
+			replace_hero = 0
+		if (tile.monster):
+			result = tile.monster.monster.fight(self)
+			if result == 'lose':
+				replace_hero = 0
 		if (tile.open_P == 0):
 			self.stats.exp = self.stats.exp + self.techstats.exppertile
 			if self.stats.lvl < maxlvl:
@@ -271,6 +306,8 @@ class Hero():
 						self.av_art.remove(art_name)
 						self.staff.append(art)
 						art.on_get(self)
+		if replace_hero:
+			self.replace_hero(tile.map_pos_x, tile.map_pos_y)
 		if (tile.name == 'treasure'):
 			self.model.on_youwin()
 	
@@ -293,6 +330,28 @@ class Artefact():
 	def draw(self):
 		self.sprite.draw()
 		
+class Skill():
+	def __init__(self, name, number, hero, model):
+		w, h = director.get_window_size()
+		sc = 1920/w
+		self.name = name
+		self.number = number
+		self.sprite = Sprite(Images.skill_image[self.name], ((1208)//sc, (899 - skill_pos[self.number])//sc), scale = 1/sc)
+		self.skill = Skills[self.name](hero , model)
+	
+	def draw(self):
+		w, h = director.get_window_size()
+		sc = 1920/w
+		self.sprite.draw()
+		if self.skill.cd_left:
+			self.label = Label('%d' %self.skill.cd_left, font_name='Times New Roman', font_size=20//sc, anchor_x='center', anchor_y='center', color = (255, 0, 0, 255) )
+			self.label.position = ((1208)//sc, (899 - skill_pos[self.number])//sc)
+			self.label.draw()
+	
+	def use(self):
+		if self.skill.available:
+			self.skill.use()
+		
 class Tech_Stats():
 	def __init__(self, hero_name):
 		self.speed = Tech_stat[hero_name]['speed']
@@ -300,12 +359,15 @@ class Tech_Stats():
 		self.exppertile = 10
 			
 class Stats():
-	def __init__(self):
+	def __init__(self, hero_name):
 		self.exp = 0
 		self.int = 0
 		self.health = 0
 		self.lvl = 1
 		self.luck = 0
+		self.attack = Tech_stat[hero_name]['attack']
+		self.armor = Tech_stat[hero_name]['armor']
+		self.power = self.attack*2 + self.armor
 
 class HeroStats(Label):
 	def __init__(self, hero):
@@ -320,12 +382,18 @@ class HeroStats(Label):
 		self.luck_label.position = 1300//sc, 245//sc
 		self.lvl_label = Label('%d' %self.hero.stats.lvl, font_name='Times New Roman', font_size=18//sc, anchor_x='center', anchor_y='center', color = (0, 0, 0, 255) )
 		self.lvl_label.position = 1618//sc, 112//sc
+		self.attack_label = Label('%d' %self.hero.stats.attack, font_name='Times New Roman', font_size=28//sc, anchor_x='center', anchor_y='center', color = (255, 0, 0, 255) )
+		self.attack_label.position = 1550//sc, 315//sc
+		self.armor_label = Label('%d' %self.hero.stats.armor, font_name='Times New Roman', font_size=28//sc, anchor_x='center', anchor_y='center', color = (255, 0, 0, 255))
+		self.armor_label.position = 1550//sc, 245//sc
 
 	def draw(self):
 		self.health_label.draw()
 		self.lvl_label.draw()
 		self.exp_label.draw()
 		self.luck_label.draw()
+		self.attack_label.draw()
+		self.armor_label.draw()
 		
 class Portraits():
 
@@ -341,6 +409,8 @@ class Portraits():
 		c.draw()
 		for art in self.hero.staff:
 			art.draw()
+		for skill in self.hero.skills:
+			skill.draw()
 	
 class Icons():
 	
@@ -363,6 +433,14 @@ class Icons():
 		else:
 			c = Sprite(Images.hero_icons_black[self.hero.name], ((1235 + Icon_size*self.number*1.1)//sc, 960//sc), scale = 1/sc)
 		c.draw()
+		
+class Monster():
+	def __init__(self, model, tile, m_name):
+		w, h = director.get_window_size()		
+		sc = 1920//w
+		self.name = m_name
+		self.tile = tile
+		self.monster = DM_Monsters[self.name](model, tile)
 		
 GameModel.register_event_type('on_game_over')
 GameModel.register_event_type('on_you_win')

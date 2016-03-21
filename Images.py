@@ -12,7 +12,7 @@ class Images(object):
 	tile_image = {tile: pyglet.resource.image('tiles/%s.png' %tile) for tile in Tile_images}
 	frame_yellow = pyglet.resource.image('frame_yellow.png')
 	frame_blue = pyglet.resource.image('frame_blue.png')
-	frame_red = pyglet.resource.image('frame_red.png')
+	frame_black = pyglet.resource.image('frame_black.png')
 	
 	heroes = {hero_name: pyglet.resource.image('heroes/%s.png' %hero_name) for hero_name in heroes}
 	portraits = {hero_name: pyglet.resource.image('heroes/%s_portrait.png' %hero_name) for hero_name in heroes}
@@ -20,6 +20,7 @@ class Images(object):
 	hero_icons_black = {hero_name: pyglet.resource.image('heroes/%s_icon_black.png' %hero_name) for hero_name in heroes}
 	
 	art_image = {art: pyglet.resource.image('artefacts/%s.png' %art) for art in Artefacts}
+	skill_image = {skill: pyglet.resource.image('skills/%s.png' %skill) for skill in Skills}
 	
 	b_types_images = ['trap', 'monster', 'magic', 'wall']
 	menu_scroll = pyglet.resource.image('menu_scroll.png')

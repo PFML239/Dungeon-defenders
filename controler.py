@@ -17,4 +17,9 @@ class Controler():
 				self.hero.alive = 0
 				self.model.alive_heroes.remove(self.hero.name)
 				self.model.on_gameover()
+				
+	def heal_hero(self, name, heal):
+		self.hero = self.model.heroes[name]
+		self.hero.stats.health = min(self.hero.stats.health + heal, self.hero.techstats.max_health)
+		self.model.interface_DM.portraits[name].reload(self.model, name)
 		

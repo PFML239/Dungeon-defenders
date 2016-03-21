@@ -14,5 +14,4 @@ class Curse():
 			if (self.model.heroes[hero].alive):
 				self.model.controler.damage_hero(self.model.heroes[hero].name, 20)
 
-DM_spells = ['curse']
 DM_Magic = {'curse' : Curse()}
