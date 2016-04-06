@@ -9,6 +9,7 @@ class Images(object):
 	Tile_images = tile_names
 	greytile = pyglet.resource.image('tiles/black.png')
 	floortile = pyglet.resource.image('tiles/floor.png')
+	art_choise = pyglet.resource.image('art_choise.png')
 	tile_image = {tile: pyglet.resource.image('tiles/%s.png' %tile) for tile in Tile_images}
 	frame_yellow = pyglet.resource.image('frame_yellow.png')
 	frame_blue = pyglet.resource.image('frame_blue.png')

@@ -99,6 +99,7 @@ class GameView_DM(GameView):
 		self.building_menu = BuildingMenu()
 		self.building_menu.visible = 0
 		self.building_menu.active = -1
+		self.model.interface_DM.money = self.model.interface_DM.money + Moneyperturn
 		for monster in self.model.monsters:
 			monster.new_turn()
 		for i in range(self.mapx):
@@ -142,14 +143,6 @@ class GameView_DM(GameView):
 		if (self.act_tile):
 			if (self.act_tile.buildav):
 				self.building_menu.draw()
-				
-		#mouse_x, mouse_y = win32gui.GetCursorPos(point)
-		'''if (mouse_x >= 1550) and (mouse_x <= 1650) and (mouse_y >= 850) and (mouse_y <= 950):
-			hero = self.model.heroes['wizard']
-			if hero.alive:
-				label = Label('%d' %hero.stats.health, font_name='Times New Roman', font_size=28//sc, anchor_x='center', anchor_y='center', color = (255, 0, 0, 255) )
-				label.position = 1300//sc, 315//sc
-				label.draw()'''
 			
 			
 	
@@ -228,33 +221,50 @@ class GameView_DM(GameView):
 					if(mouse_scroll_x*sc <= m_c + i*(m_a + m_b) + m_a) and (mouse_scroll_y*sc <= m_c + j*(m_a + m_b) + m_a):
 						number = int(i + (2 - j)*4)
 						delete_monster = 0
+						unable = 1
 						if (self.building_menu.active != -1) and (self.act_tile.open_P == 0) and (self.building_menu.active == 0):
 							name = self.building_menu.b_types[self.building_menu.active].objects[number]
-							self.model.interface_DM.money = self.model.interface_DM.money - Cost_list[name]
-							self.model.map[(self.act_tile.map_pos_x, self.act_tile.map_pos_y)].name = name
-							delete_monster = 1
+							cost = Cost_list[name]
+							if cost <= self.model.interface_DM.money:
+								unable = 0
+								self.model.interface_DM.money = self.model.interface_DM.money - Cost_list[name]
+								self.model.map[(self.act_tile.map_pos_x, self.act_tile.map_pos_y)].name = name
+								delete_monster = 1
 						if (self.building_menu.active != -1) and (self.act_tile.open_P == 0) and (self.building_menu.active == 1):
 							name = self.building_menu.b_types[self.building_menu.active].objects[number]
-							self.model.interface_DM.money = self.model.interface_DM.money - Cost_list[name]
-							tile = self.model.map[(self.act_tile.map_pos_x, self.act_tile.map_pos_y)]
-							monster = Monster(self.model, tile, name)
-							self.model.map[(self.act_tile.map_pos_x, self.act_tile.map_pos_y)].monster = monster
-							self.model.monsters.append(monster.monster)
+							cost = Cost_list[name]
+							if cost <= self.model.interface_DM.money:
+								unable = 0
+								self.model.interface_DM.money = self.model.interface_DM.money - Cost_list[name]
+								tile = self.model.map[(self.act_tile.map_pos_x, self.act_tile.map_pos_y)]
+								monster = Monster(self.model, tile, name)
+								self.model.map[(self.act_tile.map_pos_x, self.act_tile.map_pos_y)].monster = monster
+								self.model.monsters.append(monster.monster)
 						if (self.building_menu.active != -1) and (self.building_menu.active == 2):
 							name = self.building_menu.b_types[self.building_menu.active].objects[number]
-							self.model.interface_DM.money = self.model.interface_DM.money - Cost_list[name]							
-							spell = Magic(name, self.model)
-							spell.cast()
+							cost = Cost_list[name]
+							if cost <= self.model.interface_DM.money:
+								unable = 0
+								self.model.interface_DM.money = self.model.interface_DM.money - Cost_list[name]							
+								spell = Magic(name, self.model)
+								spell.cast()
 						if (self.building_menu.active != -1) and (self.act_tile.open_P == 0) and (self.building_menu.active == 3):
 							name = self.building_menu.b_types[self.building_menu.active].objects[number]
-							self.model.interface_DM.money = self.model.interface_DM.money - Cost_list[name]
-							self.model.map[(self.act_tile.map_pos_x, self.act_tile.map_pos_y)].name = name
-							delete_monster = 1
+							cost = Cost_list[name]
+							if cost <= self.model.interface_DM.money:
+								unable = 0
+								self.model.interface_DM.money = self.model.interface_DM.money - Cost_list[name]
+								self.model.map[(self.act_tile.map_pos_x, self.act_tile.map_pos_y)].name = name
+								delete_monster = 1
 						if (delete_monster):
 							tile = self.model.map[(self.act_tile.map_pos_x, self.act_tile.map_pos_y)]
 							if tile.monster:
 								self.model.monsters.remove(tile.monster.monster)
 								tile.monster = 0
+						if (unable):
+							self.label = Message('Not enouth money')
+							self.add(self.label.label)
+							self.label.label.do(FadeIn(0) + Delay(3) + FadeOut(1))
 				else:
 					self.act_tile = 0
 					self.building_menu.visible = 0
@@ -277,6 +287,8 @@ class GameView_P(GameView):
 		self.hero_number = 0
 		self.actual_hero = self.model.heroes[self.alive_heroes[self.hero_number]]
 		self.skill_use_layer = ColorLayer(51, 123, 204, 100)
+		self.status = 'usuall'
+		self.model.push_handlers(self.on_art_get)
 		
 	def reload(self):
 		check = 0
@@ -297,6 +309,11 @@ class GameView_P(GameView):
 			for j in range (self.mapy):	
 				c = self.parent.model.map.get((i, j))
 				c.next_turn()
+	
+	def on_art_get(self, artmenu):
+		self.status = 'art_menu'
+		self.art_get_layer = Art_get_layer(self, artmenu)
+		self.add(self.art_get_layer)
 	
 	def draw(self):
 		w, h = director.get_window_size()
@@ -337,7 +354,7 @@ class GameView_P(GameView):
 					(2*j + 1)*Tile_size/2//sc + (h - Quad_side*Tile_size//sc)/2), scale = 1/sc).draw()
 	
 	def on_key_release(self, keys, modifiers):
-		if self.model.skill_use == 0:
+		if (self.model.skill_use == 0) and (self.status == 'usuall'):
 			hero = self.actual_hero
 			x = hero.map_posx
 			y = hero.map_posy
@@ -365,7 +382,8 @@ class GameView_P(GameView):
 						if (hero.alive == 0):
 							self.hero_number = (self.hero_number - 1) %len(self.model.alive_heroes)
 						self.actual_hero = self.model.heroes[self.model.alive_heroes[self.hero_number]]
-						self.next_hero(1)
+						if (self.status == 'usuall'):
+							self.next_hero(1)
 				else:
 					self.label = Message('You have made a turn with this hero already')
 					self.add(self.label.label)
@@ -388,90 +406,102 @@ class GameView_P(GameView):
 			if (keys == key.ENTER):
 				self.parent.next_turn()
 				self.parent.curr_player.reload()
+				
+			if (keys == key.P):
+				self.status = 'art_menu'
+				self.add(self.art_get_layer)
 		
 	def on_mouse_release(self, x, y, buttons, modifiers):
 		w, h = director.get_window_size()
 		sc = 1920/w
 		mouse_x, mouse_y = director.get_virtual_coordinates(x, y)
 		hero = self.actual_hero
-		
-		if (buttons == mouse.LEFT):
-			i = (mouse_x*sc - left_space)//Tile_size
-			j = (mouse_y*sc - (h*sc - Quad_side*Tile_size)/2)//Tile_size
-			#Checking that tile is on the map
-			if (i >= 0) and (j >= 0) and (i < self.mapx) and (j < self.mapy):
-				if (self.model.skill_use == 0):
-					if ((abs(hero.map_posx - i) + abs(hero.map_posy - j) == 1)):
-						if (hero.turnav) or (self.cheat):
-							c = self.parent.model.map.get((i, j))
-							c.on_click_P()
-							hero.on_turn(c)
-							if len(self.model.alive_heroes) and (hero.turnav <= 0 or hero.alive == 0):
-								self.hero_number = (self.hero_number + 1) %len(self.model.alive_heroes)
-								if (hero.alive == 0):
-									self.hero_number = (self.hero_number - 1) %len(self.model.alive_heroes)
-								self.actual_hero = self.model.heroes[self.model.alive_heroes[self.hero_number]]
-								#print(self.actual_hero.name)
-								self.next_hero(1)
+		if (self.status == 'usuall'):
+			if (buttons == mouse.LEFT):
+				i = (mouse_x*sc - left_space)//Tile_size
+				j = (mouse_y*sc - (h*sc - Quad_side*Tile_size)/2)//Tile_size
+				#Checking that tile is on the map
+				if (i >= 0) and (j >= 0) and (i < self.mapx) and (j < self.mapy):
+					if (self.model.skill_use == 0):
+						if ((abs(hero.map_posx - i) + abs(hero.map_posy - j) == 1)):
+							if (hero.turnav) or (self.cheat):
+								c = self.parent.model.map.get((i, j))
+								c.on_click_P()
+								hero.on_turn(c)
+								if len(self.model.alive_heroes) and (hero.turnav <= 0 or hero.alive == 0):
+									self.hero_number = (self.hero_number + 1) %len(self.model.alive_heroes)
+									if (hero.alive == 0):
+										self.hero_number = (self.hero_number - 1) %len(self.model.alive_heroes)
+									self.actual_hero = self.model.heroes[self.model.alive_heroes[self.hero_number]]
+									#print(self.actual_hero.name)
+									if (self.status == 'usuall'):
+										self.next_hero(1)
+							else:
+								self.label = Message('You have made a turn with this hero already')
+								self.add(self.label.label)
+								self.label.label.do(FadeIn(0) + Delay(3) + FadeOut(1))
 						else:
-							self.label = Message('You have made a turn with this hero already')
+							#Message about unavaileble turn
+							self.label = Message('You must choose an adjective room to the current one')
 							self.add(self.label.label)
 							self.label.label.do(FadeIn(0) + Delay(3) + FadeOut(1))
 					else:
-						#Message about unavaileble turn
-						self.label = Message('You must choose an adjective room to the current one')
-						self.add(self.label.label)
-						self.label.label.do(FadeIn(0) + Delay(3) + FadeOut(1))
-				else:
-					if self.model.skill_use.object == 'tile':
-						tile = self.model.map.get((i, j))
-						self.model.skill_use.end_cast(tile)
-						if self.model.skill_use == 0:
-							self.remove(self.skill_use_layer)
-							self.next_hero(1)
-			
-			if (mouse_y <= 1010//sc) and (mouse_y >= 910//sc):	
-				clicked_hero = 0
-				if (mouse_x*sc >= 1235 - Icon_size/2) and (mouse_x*sc <= 1235 + 0*Icon_size*1.1 + Icon_size/2) and (self.model.heroes['wizard'].alive):
-					clicked_hero = self.model.heroes['wizard']
-				if (mouse_x*sc >= 1345 - Icon_size/2) and (mouse_x*sc <= 1235 + 1*Icon_size*1.1 + Icon_size/2) and (self.model.heroes['priest'].alive):
-					clicked_hero = self.model.heroes['priest']
-				if (mouse_x*sc >= 1455 - Icon_size/2) and (mouse_x*sc <= 1235 + 2*Icon_size*1.1 + Icon_size/2) and (self.model.heroes['warrior'].alive):
-					clicked_hero = self.model.heroes['warrior']					
-				if (mouse_x*sc >= 1565 - Icon_size/2) and (mouse_x*sc <= 1235 + 3*Icon_size*1.1 + Icon_size/2) and (self.model.heroes['rogue'].alive):
-					clicked_hero = self.model.heroes['rogue']
-				if clicked_hero:
-					if self.model.skill_use == 0:
-						self.actual_hero = clicked_hero
-					else:
-						if self.model.skill_use.object == 'hero':
-							self.model.skill_use.end_cast(clicked_hero)
+						if self.model.skill_use.object == 'tile':
+							tile = self.model.map.get((i, j))
+							self.model.skill_use.end_cast(tile)
 							if self.model.skill_use == 0:
 								self.remove(self.skill_use_layer)
-								self.next_hero(1)
-					
-			#Skills		
-			if (self.model.skill_use == 0):
-				if (mouse_x*sc >= 1171) and (mouse_x*sc <= 1246):
-					hero = self.actual_hero
-					if (mouse_y*sc <= 899 - 95) and (mouse_y*sc >= 899 - 95 - 75):
-						skill = hero.skills[0]
-					if skill:
-						skill.use()
+								if (self.status == 'usuall'):
+									self.next_hero(1)
+			
+				if (mouse_y <= 1010//sc) and (mouse_y >= 910//sc):	
+					clicked_hero = 0
+					if (mouse_x*sc >= 1235 - Icon_size/2) and (mouse_x*sc <= 1235 + 0*Icon_size*1.1 + Icon_size/2) and (self.model.heroes['wizard'].alive):
+						clicked_hero = self.model.heroes['wizard']
+					if (mouse_x*sc >= 1345 - Icon_size/2) and (mouse_x*sc <= 1235 + 1*Icon_size*1.1 + Icon_size/2) and (self.model.heroes['priest'].alive):
+						clicked_hero = self.model.heroes['priest']
+					if (mouse_x*sc >= 1455 - Icon_size/2) and (mouse_x*sc <= 1235 + 2*Icon_size*1.1 + Icon_size/2) and (self.model.heroes['warrior'].alive):
+						clicked_hero = self.model.heroes['warrior']					
+					if (mouse_x*sc >= 1565 - Icon_size/2) and (mouse_x*sc <= 1235 + 3*Icon_size*1.1 + Icon_size/2) and (self.model.heroes['rogue'].alive):
+						clicked_hero = self.model.heroes['rogue']
+					if clicked_hero:
 						if self.model.skill_use == 0:
-							self.next_hero(-1)	
-						if self.model.skill_use:
-							self.add(self.skill_use_layer)
+							self.actual_hero = clicked_hero
+						else:
+							if self.model.skill_use.object == 'hero':
+								self.model.skill_use.end_cast(clicked_hero)
+								if self.model.skill_use == 0:
+									self.remove(self.skill_use_layer)
+									if (self.status == 'usuall'):
+										self.next_hero(1)
+					
+				#Skills		
+				if (self.model.skill_use == 0):
+					skill = 0
+					if (mouse_x*sc >= 1171) and (mouse_x*sc <= 1246):
+						hero = self.actual_hero
+						if (mouse_y*sc <= 899 - 95) and (mouse_y*sc >= 899 - 95 - 75):
+							skill = hero.skills[0]
+						if (mouse_y*sc <= 899 - 174) and (mouse_y*sc >= 899 - 174 - 75):
+							skill = hero.skills[1]
+						if skill:
+							if (skill.skill.learnt):
+								skill.use()
+								if (self.model.skill_use == 0) and (self.status == 'usuall'):
+									self.next_hero(-1)	
+								if self.model.skill_use:
+									self.add(self.skill_use_layer)
 			
-			#Reaction on next turn button  click
-			if (mouse_x <= w) and (mouse_x >= w - Button_size//sc) and (mouse_y >= 0) and (mouse_y <= Button_size//sc):
-				self.parent.next_turn()
-				self.parent.curr_player.reload()
+				#Reaction on next turn button  click
+				if (mouse_x <= w) and (mouse_x >= w - Button_size//sc) and (mouse_y >= 0) and (mouse_y <= Button_size//sc):
+					self.parent.next_turn()
+					self.parent.curr_player.reload()
 				
-		if (buttons == mouse.RIGHT) and (self.model.skill_use):
-			self.remove(self.skill_use_layer)
-			self.model.skill_use.cancel()
-			
+			if (buttons == mouse.RIGHT) and (self.model.skill_use):
+				self.remove(self.skill_use_layer)
+				self.model.skill_use.cancel()
+		elif (self.status == 'art_menu'):
+			self.art_get_layer.on_click(mouse_x, mouse_y)
 			
 	
 	def next_hero(self, direction):
@@ -530,6 +560,57 @@ class GameOver(ColorLayer):
 	def on_key_release(self, keys, modifiers):
 		director.pop()
 
+class Art_get_layer(ColorLayer):
+
+	is_event_handler = True
+	
+	def __init__(self, main_layer, artmenu):
+		super(Art_get_layer,self).__init__(0,0,32,64)
+		self.main_layer = main_layer
+		w,h = director.get_window_size()
+		sc = 1920/w
+		self.sprite = Sprite(Images.art_choise, (960//sc, 540//sc), scale = 1/sc)
+		self.art_menu = artmenu
+	
+	def on_click(self, mouse_x, mouse_y):
+		w,h = director.get_window_size()
+		sc = 1920/w
+		get_art = False
+		if (mouse_x*sc >= 265 - 75) and (mouse_x*sc <= 265 + 75):
+			if (mouse_y*sc >= 827 - 75) and (mouse_y*sc <= 827 + 75):
+				get_art = True
+				number = 0
+			if (mouse_y*sc >= 567 - 75) and (mouse_y*sc <= 567 + 75):
+				get_art = True
+				number = 1
+			if (mouse_y*sc >= 307 - 75) and (mouse_y*sc <= 307 + 75):
+				get_art = True
+				number = 2
+		if (mouse_x*sc >= 975 - 75) and (mouse_x*sc <= 975 + 75):
+			if (mouse_y*sc >= 827 - 75) and (mouse_y*sc <= 827 + 75):
+				get_art = True
+				number = 3
+			if (mouse_y*sc >= 567 - 75) and (mouse_y*sc <= 567 + 75):
+				get_art = True
+				number = 4
+			if (mouse_y*sc >= 307 - 75) and (mouse_y*sc <= 307 + 75):
+				get_art = True
+				number = 5
+		if (get_art):
+			hero = self.art_menu.hero
+			art_name = Art_menu[hero.name][hero.stats.lvl][number]
+			if (hero.av_art.count(art_name)):
+				art = Artefact(art_name, len(hero.staff))
+				hero.av_art.remove(art_name)
+				hero.staff.append(art)
+				art.on_get(hero)
+				self.main_layer.status = 'usuall'
+				self.main_layer.remove(self.main_layer.art_get_layer)
+				self.main_layer.art_get_layer = 0
+		
+	def draw(self):
+		self.sprite.draw()
+		self.art_menu.draw()
 		
 		
 def get_newgame_DM():

@@ -85,6 +85,10 @@ class GameModel( pyglet.event.EventDispatcher):
 	
 	def on_youwin(self):
 		self.dispatch_event("on_you_win")
+		
+	def on_artget(self, hero):
+		Art_menu = Art_Menu(self, hero)
+		self.dispatch_event("on_art_get", Art_menu)
 			
 
 		
@@ -130,7 +134,7 @@ class Interface(Layer):
 						 'warrior': Hero_portriat_DM(),'rogue': Hero_portriat_DM()}
 		for c in self.portraits:
 			self.portraits[c].reload(model, c)
-		self.money = 10000
+		self.money = starting_money
 		
 	def draw(self):
 		w, h = director.get_window_size()
@@ -291,21 +295,22 @@ class Hero():
 			if result == 'lose':
 				replace_hero = 0
 		if (tile.open_P == 0):
-			self.stats.exp = self.stats.exp + self.techstats.exppertile
+			self.stats.exp = self.stats.exp + self.techstats.exp_per_tile
 			if self.stats.lvl < maxlvl:
 				if (self.stats.exp >= ExpNeed[self.stats.lvl]):
-					self.stats.lvl = self.stats.lvl + 1
-					self.stats.exp = 0
+					self.model.controler.lvlup_hero(self.name)
 			if (tile.name == 'floor'):	
-				self.stats.luck = self.stats.luck + luck_per_tile
+				self.stats.luck = self.stats.luck + self.techstats.luck_per_tile
 				if self.stats.luck >= 100:
-					self.stats.luck = 0
+					self.stats.luck = self.stats.luck - 100
 					if (len(self.staff) < 5):
-						art_name = self.av_art[random.randint(0, len(self.av_art) - 1)]
+						self.stats.luck = 0
+						self.model.on_artget(self)
+						'''art_name = self.av_art[random.randint(0, len(self.av_art) - 1)]
 						art = Artefact(art_name, len(self.staff))
 						self.av_art.remove(art_name)
 						self.staff.append(art)
-						art.on_get(self)
+						art.on_get(self)'''
 		if replace_hero:
 			self.replace_hero(tile.map_pos_x, tile.map_pos_y)
 		if (tile.name == 'treasure'):
@@ -325,7 +330,7 @@ class Artefact():
 	
 	def on_get(self, hero):
 		if (ArtEffects.get(self.name)):
-			ArtEffects[self.name].effect(hero)
+			ArtEffects[self.name](hero).effect()
 	
 	def draw(self):
 		self.sprite.draw()
@@ -342,11 +347,12 @@ class Skill():
 	def draw(self):
 		w, h = director.get_window_size()
 		sc = 1920/w
-		self.sprite.draw()
-		if self.skill.cd_left:
-			self.label = Label('%d' %self.skill.cd_left, font_name='Times New Roman', font_size=20//sc, anchor_x='center', anchor_y='center', color = (255, 0, 0, 255) )
-			self.label.position = ((1208)//sc, (899 - skill_pos[self.number])//sc)
-			self.label.draw()
+		if (self.skill.learnt):
+			self.sprite.draw()
+			if self.skill.cd_left:
+				self.label = Label('%d' %self.skill.cd_left, font_name='Times New Roman', font_size=20//sc, anchor_x='center', anchor_y='center', color = (255, 0, 0, 255) )
+				self.label.position = ((1208)//sc, (899 - skill_pos[self.number])//sc)
+				self.label.draw()
 	
 	def use(self):
 		if self.skill.available:
@@ -356,7 +362,8 @@ class Tech_Stats():
 	def __init__(self, hero_name):
 		self.speed = Tech_stat[hero_name]['speed']
 		self.max_health = Tech_stat[hero_name]['maxhp']
-		self.exppertile = 10
+		self.exp_per_tile = exp_per_tile
+		self.luck_per_tile = luck_per_tile
 			
 class Stats():
 	def __init__(self, hero_name):
@@ -442,5 +449,23 @@ class Monster():
 		self.tile = tile
 		self.monster = DM_Monsters[self.name](model, tile)
 		
+class Art_Menu():
+	def __init__(self, model, hero):
+		w, h = director.get_window_size()		
+		sc = 1920//w
+		self.hero = hero
+		self.model = model
+		self.arts = Art_menu[hero.name][hero.stats.lvl]
+		self.art_sprites = {}
+		for number in range(len(self.arts)):	
+			self.art_sprites[number] = Sprite(Images.art_image[self.arts[number]], 
+									(art_menu_pos_x[number]//sc, art_menu_pos_y[number]//sc), scale = 2/sc)
+		
+	def draw(self):
+		for art in self.art_sprites:
+			if (self.hero.av_art.count(self.arts[art])):
+				self.art_sprites[art].draw()
+		
 GameModel.register_event_type('on_game_over')
 GameModel.register_event_type('on_you_win')
+GameModel.register_event_type('on_art_get')
